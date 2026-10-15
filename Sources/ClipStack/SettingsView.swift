@@ -1,0 +1,53 @@
+import SwiftUI
+import ServiceManagement
+
+struct SettingsView: View {
+    @ObservedObject var store: ClipboardStore
+    @State private var hotkey = HotkeyPreset.saved
+    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var trusted = AXIsProcessTrusted()
+
+    var body: some View {
+        Form {
+            Section("Shortcut") {
+                Picker("Open clipboard history", selection: $hotkey) {
+                    ForEach(HotkeyPreset.allCases) { Text($0.label).tag($0) }
+                }
+                .onChange(of: hotkey) { _, new in HotKeyManager.shared.register(new) }
+                Text("⌘V is reserved for the system Paste, so history uses its own shortcut.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("History") {
+                Stepper(value: $store.maxItems, in: ClipboardStore.minItems...ClipboardStore.maxItemsCap, step: 10) {
+                    Text("Keep last \(store.maxItems) items")
+                }
+                Toggle("Pause capturing", isOn: $store.isPaused)
+                Button("Clear history (keeps pinned)", role: .destructive) { store.clearUnpinned() }
+            }
+            Section("General") {
+                Toggle("Launch at login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, on in
+                        do { on ? try SMAppService.mainApp.register() : try SMAppService.mainApp.unregister() }
+                        catch { launchAtLogin = SMAppService.mainApp.status == .enabled }
+                    }
+                HStack {
+                    Image(systemName: trusted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(trusted ? .green : .orange)
+                    Text(trusted ? "Auto-paste enabled" : "Auto-paste needs Accessibility permission")
+                    Spacer()
+                    if !trusted {
+                        Button("Grant…") {
+                            let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+                            _ = AXIsProcessTrustedWithOptions(opts)
+                        }
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .frame(width: 420, height: 400)
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            trusted = AXIsProcessTrusted()
+        }
+    }
+}
