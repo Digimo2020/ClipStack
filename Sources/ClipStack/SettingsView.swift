@@ -7,6 +7,12 @@ struct SettingsView: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var trusted = AXIsProcessTrusted()
 
+    static var version: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
+        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "v\(v) (\(b))"
+    }
+
     var body: some View {
         Form {
             Section("Shortcut") {
@@ -45,7 +51,12 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 420, height: 400)
+        .safeAreaInset(edge: .bottom) {
+            Text("ClipStack \(Self.version)")
+                .font(.caption).foregroundStyle(.secondary)
+                .padding(.bottom, 8)
+        }
+        .frame(width: 420, height: 430)
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             trusted = AXIsProcessTrusted()
         }
