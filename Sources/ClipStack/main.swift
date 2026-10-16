@@ -20,21 +20,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "ClipStack")
         let menu = NSMenu()
         menu.delegate = self
-        menu.addItem(withTitle: "Show Clipboard History", action: #selector(showPanel), keyEquivalent: "").target = self
+        func add(_ title: String, _ symbol: String, _ action: Selector?, key: String = "") -> NSMenuItem {
+            let item = menu.addItem(withTitle: title, action: action, keyEquivalent: key)
+            item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+            if action != nil, action != #selector(NSApplication.terminate(_:)) { item.target = self }
+            return item
+        }
+        _ = add("Show Clipboard History", "doc.on.clipboard", #selector(showPanel))
         menu.addItem(.separator())
-        pauseItem = menu.addItem(withTitle: "Pause Capturing", action: #selector(togglePause), keyEquivalent: "")
-        pauseItem.target = self
-        menu.addItem(withTitle: "Clear History", action: #selector(clearHistory), keyEquivalent: "").target = self
+        pauseItem = add("Pause Capturing", "pause.circle", #selector(togglePause))
+        _ = add("Clear History", "trash", #selector(clearHistory))
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",").target = self
-        let ver = menu.addItem(withTitle: "Version \(SettingsView.version)", action: nil, keyEquivalent: "")
+        _ = add("Settings…", "gearshape", #selector(showSettings), key: ",")
+        _ = add("GitHub · Digimo2020", "chevron.left.forwardslash.chevron.right", #selector(openGitHub))
+        let ver = add("Version \(SettingsView.version)", "info.circle", nil)
         ver.isEnabled = false
-        menu.addItem(withTitle: "Quit ClipStack", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(.separator())
+        _ = add("Quit ClipStack", "power", #selector(NSApplication.terminate(_:)), key: "q")
         statusItem.menu = menu
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
-        pauseItem.state = store.isPaused ? .on : .off
+        pauseItem.title = store.isPaused ? "Resume Capturing" : "Pause Capturing"
+        pauseItem.image = NSImage(systemSymbolName: store.isPaused ? "play.circle" : "pause.circle", accessibilityDescription: nil)
     }
 
     @objc private func showPanel() {
@@ -42,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.panel.show() }
     }
 
+    @objc private func openGitHub() { NSWorkspace.shared.open(SettingsView.githubURL) }
     @objc private func togglePause() { store.isPaused.toggle() }
     @objc private func clearHistory() { store.clearUnpinned() }
 

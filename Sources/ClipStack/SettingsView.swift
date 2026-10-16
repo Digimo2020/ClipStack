@@ -7,6 +7,8 @@ struct SettingsView: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var trusted = AXIsProcessTrusted()
 
+    static let githubURL = URL(string: "https://github.com/Digimo2020")!
+
     static var version: String {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
         let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
@@ -52,9 +54,16 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .safeAreaInset(edge: .bottom) {
-            Text("ClipStack \(Self.version)")
-                .font(.caption).foregroundStyle(.secondary)
-                .padding(.bottom, 8)
+            HStack(spacing: 10) {
+                Text("ClipStack \(Self.version)")
+                Text("·")
+                Link(destination: Self.githubURL) {
+                    Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                }
+                .help("github.com/Digimo2020")
+            }
+            .font(.caption).foregroundStyle(.secondary)
+            .padding(.bottom, 8)
         }
         .frame(width: 420, height: 430)
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
