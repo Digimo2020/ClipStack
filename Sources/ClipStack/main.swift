@@ -46,7 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         HotKeyManager.shared.register(HotkeyPreset.saved)
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "ClipStack")
+        statusItem.button?.image = Self.menuBarIcon()
         let menu = NSMenu()
         menu.delegate = self
         func add(_ title: String, _ symbol: String, _ action: Selector?, key: String = "") -> NSMenuItem {
@@ -69,6 +69,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         _ = add("Quit ClipStack", "power", #selector(NSApplication.terminate(_:)), key: "q")
         statusItem.menu = menu
+    }
+
+    /// The brand logo (purple clipboard) at menu-bar size, cropped to the squircle so it matches the app icon.
+    private static func menuBarIcon() -> NSImage {
+        guard let icon = NSApp.applicationIconImage else {
+            return NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "ClipStack") ?? NSImage()
+        }
+        let side = icon.size.width
+        let crop = NSRect(x: side * 0.0977, y: side * 0.0977, width: side * 0.8047, height: side * 0.8047)
+        let img = NSImage(size: NSSize(width: 19, height: 19), flipped: false) { rect in
+            icon.draw(in: rect, from: crop, operation: .sourceOver, fraction: 1)
+            return true
+        }
+        img.isTemplate = false
+        img.accessibilityDescription = "ClipStack"
+        return img
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
