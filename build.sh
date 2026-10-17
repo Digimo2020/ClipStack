@@ -34,7 +34,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-codesign --force --deep --sign - "$APP"
+# Identifier-based requirement keeps the code identity stable across rebuilds.
+codesign --force --deep --sign - -r="designated => identifier \"com.fahim.clipstack\"" "$APP"
 echo "Built $APP"
 
 if [[ "${1:-}" == "--install" ]]; then

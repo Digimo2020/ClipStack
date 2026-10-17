@@ -110,6 +110,7 @@ final class PanelController {
     let model: PanelModel
     private let panel: FloatingPanel
     private var keyMonitor: Any?
+    private static var askedForAccessibility = false
     private let size = NSSize(width: 440, height: 580)
 
     var isVisible: Bool { panel.isVisible }
@@ -183,9 +184,14 @@ final class PanelController {
         model.store.copyToPasteboard(item)
         hide()
         guard AXIsProcessTrusted() else {
-            let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-            _ = AXIsProcessTrustedWithOptions(opts)
-            return  // Copied; user can press ⌘V manually until permission is granted.
+            // Copied; the user presses ⌘V until permission is granted. Ask at most once per launch,
+            // never on every paste (a stale entry would otherwise nag forever).
+            if !Self.askedForAccessibility {
+                Self.askedForAccessibility = true
+                let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+                _ = AXIsProcessTrustedWithOptions(opts)
+            }
+            return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             let src = CGEventSource(stateID: .combinedSessionState)

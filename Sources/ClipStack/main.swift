@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var settingsWindow: NSWindow?
     private var pauseItem: NSMenuItem!
+    private var accessItem: NSMenuItem!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         panel = PanelController(store: store)
@@ -31,6 +32,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         pauseItem = add("Pause Capturing", "pause.circle", #selector(togglePause))
         _ = add("Clear History", "trash", #selector(clearHistory))
         menu.addItem(.separator())
+        accessItem = add("Enable Auto-Paste…", "exclamationmark.triangle.fill", #selector(showSettings))
+        accessItem.isHidden = true
         _ = add("Settings…", "gearshape", #selector(showSettings), key: ",")
         _ = add("GitHub · Digimo2020", "chevron.left.forwardslash.chevron.right", #selector(openGitHub))
         let ver = add("Version \(SettingsView.version)", "info.circle", nil)
@@ -41,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
+        accessItem.isHidden = AXIsProcessTrusted()
         pauseItem.title = store.isPaused ? "Resume Capturing" : "Pause Capturing"
         pauseItem.image = NSImage(systemSymbolName: store.isPaused ? "play.circle" : "pause.circle", accessibilityDescription: nil)
     }

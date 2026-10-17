@@ -9,6 +9,20 @@ struct SettingsView: View {
 
     static let githubURL = URL(string: "https://github.com/Digimo2020")!
 
+    static func promptAccessibility() {
+        let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(opts)
+    }
+
+    /// Clears a stale Accessibility entry (it goes out of date when the app binary is replaced).
+    static func resetAccessibilityEntry() {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+        p.arguments = ["reset", "Accessibility", Bundle.main.bundleIdentifier ?? "com.fahim.clipstack"]
+        try? p.run()
+        p.waitUntilExit()
+    }
+
     static var version: String {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
         let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
@@ -44,11 +58,17 @@ struct SettingsView: View {
                     Text(trusted ? "Auto-paste enabled" : "Auto-paste needs Accessibility permission")
                     Spacer()
                     if !trusted {
-                        Button("Grant…") {
-                            let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-                            _ = AXIsProcessTrustedWithOptions(opts)
+                        Button("Grant…") { Self.promptAccessibility() }
+                        Button("Repair…") {
+                            Self.resetAccessibilityEntry()
+                            Self.promptAccessibility()
                         }
+                        .help("Use this if ClipStack is already switched on in Accessibility but still not working.")
                     }
+                }
+                if !trusted {
+                    Text("Already switched on but still asking? Click Repair, then switch ClipStack on again.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
