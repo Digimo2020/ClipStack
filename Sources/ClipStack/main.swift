@@ -14,8 +14,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel = PanelController(store: store)
         store.start()
 
+        // Developer aid: render the panel off-screen to a PNG (no window is shown). Usage: --snapshot out.png [--images]
+        if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
+            let model = PanelModel(store: store)
+            if CommandLine.arguments.contains("--images") { model.filter = .images }
+            model.selectFirst()
+            let size = NSSize(width: 460, height: 600)
+            let host = NSHostingView(rootView: HistoryView(model: model).frame(width: size.width, height: size.height).background(Color(red: 0.10, green: 0.06, blue: 0.26)))
+            let win = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: .borderless, backing: .buffered, defer: false)
+            win.contentView = host
+            host.frame = NSRect(origin: .zero, size: size)
+            host.layoutSubtreeIfNeeded()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.8))
+            if let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
+                host.cacheDisplay(in: host.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
+            }
+            exit(0)
+        }
+
         if CommandLine.arguments.contains("--show") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.panel.show() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                self.panel.show()
+                if CommandLine.arguments.contains("--images") { self.panel.model.filter = .images }
+            }
         }
 
         HotKeyManager.shared.onTrigger = { [weak self] in self?.panel.toggle() }

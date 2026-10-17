@@ -53,6 +53,9 @@ final class PanelModel: ObservableObject {
         return filtered.filter(\.pinned) + filtered.filter { !$0.pinned }
     }
 
+    /// Columns of the current layout: the Images tab is a 3-wide grid, everything else a list.
+    var gridColumns: Int { filter == .images ? 3 : 1 }
+
     func reset() {
         query = ""
         filter = .all
@@ -219,8 +222,10 @@ final class PanelController {
             let cmd = event.modifierFlags.contains(.command)
             let code = Int(event.keyCode)
             switch code {
-            case kVK_DownArrow: self.model.move(1); return nil
-            case kVK_UpArrow: self.model.move(-1); return nil
+            case kVK_DownArrow: self.model.move(self.model.gridColumns); return nil
+            case kVK_UpArrow: self.model.move(-self.model.gridColumns); return nil
+            case kVK_LeftArrow where self.model.filter == .images: self.model.move(-1); return nil
+            case kVK_RightArrow where self.model.filter == .images: self.model.move(1); return nil
             case kVK_Return, kVK_ANSI_KeypadEnter: self.model.activateSelected(); return nil
             case kVK_Escape: self.hide(); return nil
             case kVK_Delete where cmd: self.model.deleteSelected(); return nil

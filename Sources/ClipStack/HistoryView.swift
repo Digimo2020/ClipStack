@@ -85,22 +85,41 @@ struct HistoryView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(spacing: 6) {
-                            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                                ClipRow(
-                                    item: item,
-                                    index: index,
-                                    selected: item.id == model.selectedID,
-                                    onPaste: { model.onActivate?(item) },
-                                    onPin: { model.store.togglePin(item.id) },
-                                    onDelete: { model.store.delete(item.id) }
-                                )
-                                .id(item.id)
-                                .onHover { inside in if inside { model.selectedID = item.id } }
+                        if model.filter == .images {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                                    ImageTile(
+                                        item: item,
+                                        index: index,
+                                        selected: item.id == model.selectedID,
+                                        onPaste: { model.onActivate?(item) },
+                                        onPin: { model.store.togglePin(item.id) },
+                                        onDelete: { model.store.delete(item.id) }
+                                    )
+                                    .id(item.id)
+                                    .onHover { inside in if inside { model.selectedID = item.id } }
+                                }
                             }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                        } else {
+                            LazyVStack(spacing: 6) {
+                                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                                    ClipRow(
+                                        item: item,
+                                        index: index,
+                                        selected: item.id == model.selectedID,
+                                        onPaste: { model.onActivate?(item) },
+                                        onPin: { model.store.togglePin(item.id) },
+                                        onDelete: { model.store.delete(item.id) }
+                                    )
+                                    .id(item.id)
+                                    .onHover { inside in if inside { model.selectedID = item.id } }
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
                     }
                     .onChange(of: model.selectedID) { _, id in
                         guard let id else { return }
@@ -207,6 +226,72 @@ struct HistoryView: View {
                 .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.white.opacity(0.18), lineWidth: 0.5))
             Text(label).font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
         }
+    }
+}
+
+// MARK: - Image grid tile (Images tab)
+
+struct ImageTile: View {
+    let item: ClipItem
+    let index: Int
+    let selected: Bool
+    let onPaste: () -> Void
+    let onPin: () -> Void
+    let onDelete: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        // The clear base fixes the cell size; the picture only fills it, so big images cannot stretch the grid.
+        Color.clear
+            .aspectRatio(1.15, contentMode: .fit)
+            .overlay {
+                ZStack {
+                    Color.white.opacity(0.06)
+                    if let f = item.imageFile, let img = ImageCache.thumbnail(file: f) {
+                        Image(nsImage: img).resizable().scaledToFill()
+                    } else {
+                        Image(systemName: "photo").font(.system(size: 22)).foregroundStyle(Theme.textSecondary)
+                    }
+                }
+            }
+            .clipShape(shape)
+        .overlay(alignment: .top) {
+            HStack(spacing: 6) {
+                if hovering || selected { tileButton("trash", action: onDelete) }
+                Spacer()
+                if hovering || selected || item.pinned { tileButton(item.pinned ? "pin.fill" : "pin", action: onPin) }
+            }
+            .padding(6)
+        }
+        .overlay(alignment: .bottomLeading) {
+            if let size = item.imageSize, hovering || selected {
+                Text(size)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(Capsule().fill(Color.black.opacity(0.55)))
+                    .padding(6)
+            }
+        }
+        .overlay(shape.stroke(selected ? Theme.accent : Color.white.opacity(0.14), lineWidth: selected ? 2.5 : 1))
+        .shadow(color: selected ? Theme.accent.opacity(0.5) : .clear, radius: 10)
+        .scaleEffect(selected ? 1.02 : 1)
+        .animation(.easeOut(duration: 0.12), value: selected)
+        .contentShape(shape)
+        .onTapGesture(perform: onPaste)
+        .onHover { hovering = $0 }
+    }
+
+    private func tileButton(_ name: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: name)
+                .font(.system(size: 11, weight: .semibold))
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(Color.black.opacity(0.55)))
+                .foregroundStyle(item.pinned && name.hasPrefix("pin") ? Theme.accent : Color.white)
+        }
+        .buttonStyle(.plain)
     }
 }
 
