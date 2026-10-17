@@ -86,6 +86,8 @@ cd ClipStack
 
 Set a version with `VERSION=1.2 ./build.sh`.
 
+Maintainers: `./scripts/release.sh patch "what changed"` bumps `VERSION`, builds, pushes and publishes the GitHub release in one step.
+
 ## Privacy
 
 ClipStack has no network code, no analytics and no accounts. History is stored locally in `~/Library/Application Support/ClipStack/`. Items marked as concealed or transient by other apps (for example password managers) are never saved.
