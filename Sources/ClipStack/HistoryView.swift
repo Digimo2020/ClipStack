@@ -33,6 +33,43 @@ enum ImageCache {
     }
 }
 
+// MARK: - Theme
+
+enum Theme {
+    static let accent = Color(red: 0.56, green: 0.38, blue: 0.99)
+    static let accentDeep = Color(red: 0.40, green: 0.26, blue: 0.92)
+    static let glass = Color.white.opacity(0.06)
+    static let glassBorder = Color.white.opacity(0.10)
+    static let textSecondary = Color.white.opacity(0.55)
+    static let tile = LinearGradient(colors: [Color(red: 0.62, green: 0.45, blue: 1.0), Color(red: 0.42, green: 0.28, blue: 0.93)],
+                                     startPoint: .topLeading, endPoint: .bottomTrailing)
+}
+
+private func parseHexColor(_ raw: String?) -> Color? {
+    guard var t = raw?.trimmingCharacters(in: .whitespacesAndNewlines), t.hasPrefix("#") else { return nil }
+    t.removeFirst()
+    guard [3, 6, 8].contains(t.count), t.allSatisfy(\.isHexDigit) else { return nil }
+    if t.count == 3 { t = t.map { "\($0)\($0)" }.joined() }
+    var v: UInt64 = 0
+    Scanner(string: String(t.prefix(6))).scanHexInt64(&v)
+    return Color(red: Double((v >> 16) & 0xFF) / 255, green: Double((v >> 8) & 0xFF) / 255, blue: Double(v & 0xFF) / 255)
+}
+
+extension ClipItem {
+    /// One short line: the first non-empty line of text, links without the scheme.
+    var title: String {
+        switch kind {
+        case .image: return "Image" + (imageSize.map { " \($0)" } ?? "")
+        case .text:
+            let line = (text ?? "").split(whereSeparator: \.isNewline)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .first(where: { !$0.isEmpty }) ?? ""
+            let t = isLink ? line.replacingOccurrences(of: #"^https?://(www\.)?"#, with: "", options: .regularExpression) : line
+            return String(t.prefix(120))
+        }
+    }
+}
+
 // MARK: - Main view
 
 struct HistoryView: View {
@@ -43,13 +80,12 @@ struct HistoryView: View {
         let items = model.visible
         VStack(spacing: 0) {
             header
-            Divider().opacity(0.4)
             if items.isEmpty {
                 emptyState
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(spacing: 2) {
+                        LazyVStack(spacing: 6) {
                             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                                 ClipRow(
                                     item: item,
@@ -63,7 +99,8 @@ struct HistoryView: View {
                                 .onHover { inside in if inside { model.selectedID = item.id } }
                             }
                         }
-                        .padding(8)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
                     }
                     .onChange(of: model.selectedID) { _, id in
                         guard let id else { return }
@@ -71,89 +108,104 @@ struct HistoryView: View {
                     }
                 }
             }
-            Divider().opacity(0.4)
             footer
         }
+        .background(
+            ZStack {
+                LinearGradient(colors: [Color(red: 0.16, green: 0.09, blue: 0.40).opacity(0.78), Color(red: 0.07, green: 0.05, blue: 0.20).opacity(0.85)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                RadialGradient(colors: [Theme.accent.opacity(0.35), .clear], center: .topTrailing, startRadius: 0, endRadius: 360)
+            }
+        )
+        .environment(\.colorScheme, .dark)
         .onAppear { searchFocused = true }
         .onChange(of: model.focusTick) { _, _ in searchFocused = true }
     }
 
     private var header: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+        VStack(spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass").font(.system(size: 14, weight: .medium)).foregroundStyle(Theme.textSecondary)
                 TextField("Search clipboard history", text: $model.query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 15))
                     .focused($searchFocused)
                 if !model.query.isEmpty {
                     Button { model.query = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.textSecondary)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.primary.opacity(0.07)))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.glass))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.glassBorder, lineWidth: 1))
 
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 ForEach(ClipFilter.allCases) { f in
+                    let on = model.filter == f
                     Button { model.filter = f } label: {
                         Text(f.rawValue)
-                            .font(.system(size: 11.5, weight: .medium))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(model.filter == f ? Color.accentColor : Color.primary.opacity(0.07)))
-                            .foregroundStyle(model.filter == f ? Color.white : Color.secondary)
+                            .font(.system(size: 12, weight: .semibold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(on ? AnyShapeStyle(Theme.tile) : AnyShapeStyle(Theme.glass)))
+                            .overlay(Capsule().stroke(on ? Color.white.opacity(0.25) : Theme.glassBorder, lineWidth: 1))
+                            .foregroundStyle(on ? Color.white : Color.white.opacity(0.7))
+                            .shadow(color: on ? Theme.accent.opacity(0.5) : .clear, radius: 8)
                     }
                     .buttonStyle(.plain)
                 }
                 Spacer()
             }
         }
-        .padding(12)
+        .padding(.horizontal, 14)
+        .padding(.top, 16)
+        .padding(.bottom, 10)
     }
 
     private var emptyState: some View {
         VStack(spacing: 10) {
             Spacer()
             Image(systemName: model.query.isEmpty ? "doc.on.clipboard" : "magnifyingglass")
-                .font(.system(size: 34, weight: .light))
-                .foregroundStyle(.tertiary)
+                .font(.system(size: 36, weight: .light))
+                .foregroundStyle(Theme.accent)
             Text(model.query.isEmpty ? "Nothing here yet" : "No results")
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 15, weight: .semibold))
             Text(model.query.isEmpty ? "Copy something and it will show up here." : "Try a different search or filter.")
                 .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
             Spacer()
         }
         .frame(maxWidth: .infinity)
     }
 
     private var footer: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             hint("↑↓", "Navigate")
             hint("⏎", "Paste")
             hint("⌘P", "Pin")
             hint("⌘⌫", "Delete")
             Spacer()
-            Text("\(model.store.items.count) items")
-                .font(.system(size: 10.5))
-                .foregroundStyle(.tertiary)
+            Text("\(model.store.items.count)")
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundStyle(Theme.textSecondary)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.black.opacity(0.18))
     }
 
     private func hint(_ key: String, _ label: String) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 5) {
             Text(key)
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1.5)
-                .background(RoundedRectangle(cornerRadius: 4).fill(.primary.opacity(0.1)))
-            Text(label).font(.system(size: 10.5)).foregroundStyle(.secondary)
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(RoundedRectangle(cornerRadius: 5).fill(Color.white.opacity(0.12)))
+                .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.white.opacity(0.18), lineWidth: 0.5))
+            Text(label).font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
         }
     }
 }
@@ -177,90 +229,89 @@ struct ClipRow: View {
     }()
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            icon
-            VStack(alignment: .leading, spacing: 4) {
-                content
-                HStack(spacing: 4) {
-                    if let name = item.sourceName { Text(name) }
-                    Text("·")
-                    Text(Self.relative.localizedString(for: item.date, relativeTo: Date()))
-                }
-                .font(.system(size: 10.5))
-                .foregroundStyle(Color.primary.opacity(selected ? 0.65 : 0.5))
-                .lineLimit(1)
+        HStack(spacing: 12) {
+            tile
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.title)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Text(meta)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(1)
             }
-            Spacer(minLength: 4)
+            Spacer(minLength: 6)
             trailing
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(selected ? Color.accentColor.opacity(0.28) : Color.clear)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(selected ? AnyShapeStyle(Theme.accent.opacity(0.28)) : AnyShapeStyle(Theme.glass))
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(selected ? Theme.accent.opacity(0.7) : Theme.glassBorder, lineWidth: 1)
+        )
+        .shadow(color: selected ? Theme.accent.opacity(0.25) : .clear, radius: 8)
         .contentShape(Rectangle())
         .onTapGesture(perform: onPaste)
         .onHover { hovering = $0 }
     }
 
-    @ViewBuilder private var icon: some View {
-        if let img = ImageCache.appIcon(bundleID: item.sourceBundleID) {
-            Image(nsImage: img).resizable().frame(width: 24, height: 24)
+    private var meta: String {
+        let when = Self.relative.localizedString(for: item.date, relativeTo: Date())
+        if let name = item.sourceName { return "\(name) · \(when)" }
+        return when
+    }
+
+    /// Rounded tile that tells the type at a glance: icon, image thumbnail or colour swatch.
+    @ViewBuilder private var tile: some View {
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        if item.kind == .image, let f = item.imageFile, let img = ImageCache.thumbnail(file: f) {
+            Image(nsImage: img).resizable().scaledToFill()
+                .frame(width: 38, height: 38).clipShape(shape)
+                .overlay(shape.stroke(Color.white.opacity(0.25), lineWidth: 1))
+        } else if let c = parseHexColor(item.text) {
+            shape.fill(c).frame(width: 38, height: 38)
+                .overlay(shape.stroke(Color.white.opacity(0.35), lineWidth: 1))
         } else {
-            Image(systemName: item.kind == .image ? "photo" : "doc.text")
-                .frame(width: 24, height: 24)
-                .foregroundStyle(.secondary)
+            shape.fill(Theme.tile).frame(width: 38, height: 38)
+                .overlay(Image(systemName: symbol).font(.system(size: 16, weight: .medium)).foregroundStyle(.white))
+                .overlay(shape.stroke(Color.white.opacity(0.25), lineWidth: 1))
         }
     }
 
-    @ViewBuilder private var content: some View {
-        switch item.kind {
-        case .text:
-            Text((item.text ?? "").prefix(400))
-                .font(.system(size: 13, design: item.isLink ? .default : .default))
-                .foregroundStyle(item.isLink ? Color.accentColor : Color.primary)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-        case .image:
-            HStack(spacing: 8) {
-                if let f = item.imageFile, let img = ImageCache.thumbnail(file: f) {
-                    Image(nsImage: img)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: 200, maxHeight: 64, alignment: .leading)
-                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).stroke(.primary.opacity(0.12), lineWidth: 0.5))
-                }
-                if let s = item.imageSize {
-                    Text(s).font(.system(size: 11)).foregroundStyle(.secondary)
-                }
-            }
-        }
+    private var symbol: String {
+        if item.kind == .image { return "photo" }
+        if item.isLink { return "link" }
+        return "text.alignleft"
     }
 
     @ViewBuilder private var trailing: some View {
-        if hovering || selected {
-            HStack(spacing: 6) {
-                iconButton(item.pinned ? "pin.slash.fill" : "pin", action: onPin)
+        HStack(spacing: 8) {
+            if hovering || selected {
                 iconButton("trash", action: onDelete)
+            } else if index < 9 {
+                Text("⌘\(index + 1)")
+                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.35))
             }
-        } else if item.pinned {
-            Image(systemName: "pin.fill").font(.system(size: 10)).foregroundStyle(.orange)
-        } else if index < 9 {
-            Text("⌘\(index + 1)").font(.system(size: 10.5, design: .rounded)).foregroundStyle(.tertiary)
+            iconButton(item.pinned ? "pin.fill" : "pin", tint: item.pinned ? Theme.accent : Theme.textSecondary, action: onPin)
         }
     }
 
-    private func iconButton(_ name: String, action: @escaping () -> Void) -> some View {
+    private func iconButton(_ name: String, tint: Color = Theme.textSecondary, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: name)
-                .font(.system(size: 11))
-                .frame(width: 22, height: 22)
-                .background(Circle().fill(.primary.opacity(0.1)))
+                .font(.system(size: 12, weight: .medium))
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(tint)
     }
 }

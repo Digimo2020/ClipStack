@@ -111,7 +111,7 @@ final class PanelController {
     private let panel: FloatingPanel
     private var keyMonitor: Any?
     private static var askedForAccessibility = false
-    private let size = NSSize(width: 440, height: 580)
+    private let size = NSSize(width: 460, height: 600)
 
     var isVisible: Bool { panel.isVisible }
 
@@ -123,6 +123,7 @@ final class PanelController {
             backing: .buffered,
             defer: false
         )
+        panel.appearance = NSAppearance(named: .darkAqua)
         panel.level = .popUpMenu
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -136,11 +137,11 @@ final class PanelController {
         effect.blendingMode = .behindWindow
         effect.state = .active
         effect.wantsLayer = true
-        effect.layer?.cornerRadius = 16
+        effect.layer?.cornerRadius = 22
         effect.layer?.cornerCurve = .continuous
         effect.layer?.masksToBounds = true
-        effect.layer?.borderWidth = 0.5
-        effect.layer?.borderColor = NSColor.white.withAlphaComponent(0.18).cgColor
+        effect.layer?.borderWidth = 1
+        effect.layer?.borderColor = NSColor(red: 0.62, green: 0.45, blue: 1.0, alpha: 0.55).cgColor
 
         let host = NSHostingView(rootView: HistoryView(model: model))
         host.frame = effect.bounds

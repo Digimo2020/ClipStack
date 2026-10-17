@@ -14,6 +14,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel = PanelController(store: store)
         store.start()
 
+        if CommandLine.arguments.contains("--show") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.panel.show() }
+        }
+
         HotKeyManager.shared.onTrigger = { [weak self] in self?.panel.toggle() }
         HotKeyManager.shared.register(HotkeyPreset.saved)
 
