@@ -5,6 +5,14 @@
 <h1 align="center">ClipStack</h1>
 
 <p align="center">
+  <a href="https://github.com/Digimo2020/ClipStack/releases/latest"><img alt="Latest version" src="https://img.shields.io/github/v/release/Digimo2020/ClipStack?label=version&color=7c3aed&style=flat-square"></a>
+  <a href="https://github.com/Digimo2020/ClipStack/commits/main"><img alt="Last update" src="https://img.shields.io/github/last-commit/Digimo2020/ClipStack?label=last%20update&color=6366f1&style=flat-square"></a>
+  <a href="https://github.com/Digimo2020/ClipStack/releases/latest"><img alt="Release date" src="https://img.shields.io/github/release-date/Digimo2020/ClipStack?label=released&color=8b5cf6&style=flat-square"></a>
+  <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111827?style=flat-square&logo=apple&logoColor=white">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-10b981?style=flat-square"></a>
+</p>
+
+<p align="center">
   A tiny, fast clipboard history for macOS. Press <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>V</kbd> and paste anything you copied recently.<br>
   Like Windows + V, for your Mac.
 </p>

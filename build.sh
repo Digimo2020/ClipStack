@@ -2,7 +2,7 @@
 # Builds ClipStack.app into ./build. Pass --install to also copy it to /Applications and launch it.
 set -euo pipefail
 cd "$(dirname "$0")"
-VERSION="${VERSION:-1.0}"
+VERSION="${VERSION:-$(cat VERSION)}"
 
 SP=${SCRATCH_PATH:+--scratch-path $SCRATCH_PATH}
 swift build -c release $SP
