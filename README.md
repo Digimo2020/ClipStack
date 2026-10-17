@@ -9,7 +9,7 @@
   <a href="https://github.com/Digimo2020/ClipStack/commits/main"><img alt="Last update" src="https://img.shields.io/github/last-commit/Digimo2020/ClipStack?label=last%20update&color=6366f1&style=flat-square"></a>
   <a href="https://github.com/Digimo2020/ClipStack/releases/latest"><img alt="Release date" src="https://img.shields.io/github/release-date/Digimo2020/ClipStack?label=released&color=8b5cf6&style=flat-square"></a>
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111827?style=flat-square&logo=apple&logoColor=white">
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-10b981?style=flat-square"></a>
+  <a href="LICENSE"><img alt="PolyForm Noncommercial License 1.0.0" src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-8b5cf6?style=flat-square"></a>
 </p>
 
 <p align="center">
@@ -40,7 +40,7 @@
 
 1. **Download** `ClipStack.dmg` from the [latest release](https://github.com/Digimo2020/ClipStack/releases/latest).
 2. **Open the DMG** and drag **ClipStack** onto the **Applications** folder.
-3. **First launch.** ClipStack is not notarized by Apple (that needs a paid developer account), so macOS shows *"Apple could not verify ClipStack…"*. This is expected. Do either of these once:
+3. **First launch.** ClipStack is not notarized by Apple (that needs a paid developer account), so macOS shows *"Apple could not verify ClipStack…"* . This is expected. Do either of these once:
    - Click **Done**, open **System Settings → Privacy & Security**, scroll down to *"ClipStack was blocked"* and click **Open Anyway**; or
    - run this in Terminal:
      ```bash
@@ -102,4 +102,6 @@ ClipStack has no network code, no analytics and no accounts. History is stored l
 
 ## License
 
-[MIT](LICENSE) © Kazi Fahim · [GitHub @Digimo2020](https://github.com/Digimo2020)
+ClipStack is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE). It is free to use for personal and other permitted noncommercial purposes. See the full license for the applicable terms.
+
+© Kazi Fahim · [GitHub @Digimo2020](https://github.com/Digimo2020)
