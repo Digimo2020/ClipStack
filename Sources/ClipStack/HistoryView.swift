@@ -80,7 +80,9 @@ struct HistoryView: View {
         let items = model.visible
         VStack(spacing: 0) {
             header
-            if items.isEmpty {
+            if model.filter == .emoji {
+                EmojiPicker(model: model)
+            } else if items.isEmpty {
                 emptyState
             } else {
                 ScrollViewReader { proxy in
@@ -145,7 +147,7 @@ struct HistoryView: View {
         VStack(spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass").font(.system(size: 14, weight: .medium)).foregroundStyle(Theme.textSecondary)
-                TextField("Search clipboard history", text: $model.query)
+                TextField(model.filter == .emoji ? "Search emoji (e.g. heart, fire, thumbs)" : "Search clipboard history", text: $model.query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 15))
                     .focused($searchFocused)
@@ -165,7 +167,7 @@ struct HistoryView: View {
                 ForEach(ClipFilter.allCases) { f in
                     let on = model.filter == f
                     Button { model.filter = f } label: {
-                        Text(f.rawValue)
+                        Text(f == .emoji ? "😀 Emoji" : f.rawValue)
                             .font(.system(size: 12, weight: .semibold))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 6)
@@ -202,14 +204,21 @@ struct HistoryView: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
-            hint("↑↓", "Navigate")
-            hint("⏎", "Paste")
-            hint("⌘P", "Pin")
-            hint("⌘⌫", "Delete")
+            if model.filter == .emoji {
+                hint("↑↓←→", "Move")
+                hint("⏎", "Insert")
+                hint("⌘E", "Emoji")
+            } else {
+                hint("↑↓", "Navigate")
+                hint("⏎", "Paste")
+                hint("⌘P", "Pin")
+                hint("⌘⌫", "Delete")
+            }
             Spacer()
-            Text("\(model.store.items.count)")
+            Text(model.filter == .emoji ? (model.selectedEmoji.map { "\($0)  \(EmojiData.name(of: $0))" } ?? "") : "\(model.store.items.count)")
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
                 .foregroundStyle(Theme.textSecondary)
+                .lineLimit(1)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -225,6 +234,70 @@ struct HistoryView: View {
                 .background(RoundedRectangle(cornerRadius: 5).fill(Color.white.opacity(0.12)))
                 .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.white.opacity(0.18), lineWidth: 0.5))
             Text(label).font(.system(size: 10.5)).foregroundStyle(Theme.textSecondary)
+        }
+    }
+}
+
+// MARK: - Emoji picker (Emoji tab)
+
+struct EmojiPicker: View {
+    @ObservedObject var model: PanelModel
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 8)
+
+    var body: some View {
+        let list = model.emojiResults
+        let recent = model.recentCount
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 4) {
+                    if list.isEmpty {
+                        Text("No emoji found").font(.system(size: 13)).foregroundStyle(Theme.textSecondary)
+                            .frame(maxWidth: .infinity).padding(.top, 60)
+                    } else if recent > 0 {
+                        label("Recently used")
+                        grid(Array(list[0..<recent]), offset: 0)
+                        label("All emoji").padding(.top, 8)
+                        grid(Array(list[recent...]), offset: recent)
+                    } else {
+                        label(model.query.isEmpty ? "All emoji" : "\(list.count) results")
+                        grid(list, offset: 0)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+            }
+            .onChange(of: model.emojiSel) { _, i in
+                withAnimation(.easeOut(duration: 0.1)) { proxy.scrollTo(i) }
+            }
+        }
+    }
+
+    private func label(_ t: String) -> some View {
+        Text(t.uppercased())
+            .font(.system(size: 10, weight: .bold))
+            .tracking(0.8)
+            .foregroundStyle(Theme.textSecondary)
+            .padding(.leading, 4).padding(.top, 2)
+    }
+
+    private func grid(_ items: [String], offset: Int) -> some View {
+        LazyVGrid(columns: columns, spacing: 2) {
+            ForEach(Array(items.enumerated()), id: \.offset) { i, e in
+                let idx = offset + i
+                let sel = model.emojiSel == idx
+                Text(e)
+                    .font(.system(size: 26))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(sel ? Theme.accent.opacity(0.35) : Color.clear))
+                    .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(sel ? Theme.accent : Color.clear, lineWidth: 1.5))
+                    .scaleEffect(sel ? 1.12 : 1)
+                    .animation(.easeOut(duration: 0.1), value: sel)
+                    .contentShape(Rectangle())
+                    .onTapGesture { model.emojiSel = idx; model.activateSelected() }
+                    .onHover { if $0 { model.emojiSel = idx } }
+                    .id(idx)
+            }
         }
     }
 }

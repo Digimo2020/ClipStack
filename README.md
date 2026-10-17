@@ -29,6 +29,7 @@
 - **One shortcut**: <kbd>⌘</kbd><kbd>⇧</kbd><kbd>V</kbd> opens a floating panel. Change it in Settings.
 - **Paste instantly**: press <kbd>⏎</kbd> or click an item and it is pasted into the app you were using.
 - **Search and filters**: type to search, or filter by All, Text, Images, Links, Pinned.
+- **Emoji picker**: open the 😀 Emoji tab (or press <kbd>⌘</kbd><kbd>E</kbd>), search by name (heart, fire, thumbs…) and insert any emoji into your text.
 - **Pin favourites**: pinned items are never removed.
 - **Private by design**: everything stays on your Mac. Passwords copied from password managers are ignored, and you can pause capturing any time.
 - **Native and light**: Swift and SwiftUI, lives in the menu bar, no Dock icon, dark mode supported.
@@ -57,6 +58,7 @@
 | <kbd>↑</kbd> <kbd>↓</kbd> | Move the selection |
 | <kbd>⏎</kbd> | Paste the selected item |
 | <kbd>⌘</kbd><kbd>1</kbd> – <kbd>9</kbd> | Paste item 1–9 directly |
+| <kbd>⌘</kbd><kbd>E</kbd> | Jump to the Emoji tab |
 | <kbd>⌘</kbd><kbd>P</kbd> | Pin or unpin |
 | <kbd>⌘</kbd><kbd>⌫</kbd> | Delete the selected item |
 | <kbd>Esc</kbd> | Close |

@@ -18,6 +18,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
             let model = PanelModel(store: store)
             if CommandLine.arguments.contains("--images") { model.filter = .images }
+            if CommandLine.arguments.contains("--emoji") { model.filter = .emoji }
+            if let q = CommandLine.arguments.firstIndex(of: "--query"), q + 1 < CommandLine.arguments.count { model.query = CommandLine.arguments[q + 1] }
             model.selectFirst()
             let size = NSSize(width: 460, height: 600)
             let host = NSHostingView(rootView: HistoryView(model: model).frame(width: size.width, height: size.height).background(Color(red: 0.10, green: 0.06, blue: 0.26)))

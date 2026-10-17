@@ -4,7 +4,7 @@ import Combine
 import Carbon.HIToolbox
 
 enum ClipFilter: String, CaseIterable, Identifiable {
-    case all = "All", text = "Text", images = "Images", links = "Links", pinned = "Pinned"
+    case all = "All", text = "Text", images = "Images", links = "Links", pinned = "Pinned", emoji = "Emoji"
     var id: String { rawValue }
 }
 
@@ -17,6 +17,8 @@ final class PanelModel: ObservableObject {
     @Published var focusTick = 0
 
     var onActivate: ((ClipItem) -> Void)?
+    var onEmoji: ((String) -> Void)?
+    @Published var emojiSel = 0
     var onClose: (() -> Void)?
 
     private var bag = Set<AnyCancellable>()
@@ -44,6 +46,7 @@ final class PanelModel: ObservableObject {
             case .images: if item.kind != .image { return false }
             case .links: if !item.isLink { return false }
             case .pinned: if !item.pinned { return false }
+            case .emoji: return false
             }
             if q.isEmpty { return true }
             return (item.text ?? "").localizedCaseInsensitiveContains(q)
@@ -54,7 +57,29 @@ final class PanelModel: ObservableObject {
     }
 
     /// Columns of the current layout: the Images tab is a 3-wide grid, everything else a list.
-    var gridColumns: Int { filter == .images ? 3 : 1 }
+    var gridColumns: Int {
+        switch filter {
+        case .images: return 3
+        case .emoji: return 8
+        default: return 1
+        }
+    }
+
+    // MARK: Emoji tab
+
+    static let recentKey = "recentEmoji"
+    var recentEmoji: [String] { UserDefaults.standard.stringArray(forKey: Self.recentKey) ?? [] }
+    private var emojiQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
+    /// Recents first (only when not searching), then every emoji, or the search matches.
+    var emojiResults: [String] { emojiQuery.isEmpty ? recentEmoji + EmojiData.all.map(\.char) : EmojiData.search(emojiQuery) }
+    var recentCount: Int { emojiQuery.isEmpty ? recentEmoji.count : 0 }
+    var selectedEmoji: String? { let r = emojiResults; return emojiSel < r.count ? r[emojiSel] : nil }
+
+    func rememberEmoji(_ e: String) {
+        var r = recentEmoji.filter { $0 != e }
+        r.insert(e, at: 0)
+        UserDefaults.standard.set(Array(r.prefix(16)), forKey: Self.recentKey)
+    }
 
     func reset() {
         query = ""
@@ -63,7 +88,7 @@ final class PanelModel: ObservableObject {
         focusTick += 1
     }
 
-    func selectFirst() { selectedID = visible.first?.id }
+    func selectFirst() { selectedID = visible.first?.id; emojiSel = 0 }
 
     func normalizeSelection() {
         let v = visible
@@ -71,6 +96,11 @@ final class PanelModel: ObservableObject {
     }
 
     func move(_ delta: Int) {
+        if filter == .emoji {
+            let n = emojiResults.count
+            if n > 0 { emojiSel = min(max(emojiSel + delta, 0), n - 1) }
+            return
+        }
         let v = visible
         guard !v.isEmpty else { return }
         let cur = v.firstIndex(where: { $0.id == selectedID }) ?? 0
@@ -82,14 +112,19 @@ final class PanelModel: ObservableObject {
         return v.first(where: { $0.id == selectedID }) ?? v.first
     }
 
-    func activateSelected() { if let i = selectedItem { onActivate?(i) } }
+    func activateSelected() {
+        if filter == .emoji { if let e = selectedEmoji { onEmoji?(e) }; return }
+        if let i = selectedItem { onActivate?(i) }
+    }
 
     func activate(index: Int) {
+        guard filter != .emoji else { return }
         let v = visible
         if index < v.count { onActivate?(v[index]) }
     }
 
     func deleteSelected() {
+        guard filter != .emoji else { return }
         guard let item = selectedItem else { return }
         let v = visible
         let idx = v.firstIndex(where: { $0.id == item.id }) ?? 0
@@ -99,6 +134,7 @@ final class PanelModel: ObservableObject {
     }
 
     func togglePinSelected() {
+        guard filter != .emoji else { return }
         if let item = selectedItem { store.togglePin(item.id) }
     }
 }
@@ -154,6 +190,7 @@ final class PanelController {
 
         model.onActivate = { [weak self] item in self?.paste(item) }
         model.onClose = { [weak self] in self?.hide() }
+        model.onEmoji = { [weak self] e in self?.pasteText(e) }
 
         NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: panel, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.hide() }
@@ -186,6 +223,17 @@ final class PanelController {
 
     private func paste(_ item: ClipItem) {
         model.store.copyToPasteboard(item)
+        sendPaste()
+    }
+
+    /// Inserts an emoji into the app you were using. It is not added to the clipboard history.
+    private func pasteText(_ text: String) {
+        model.rememberEmoji(text)
+        model.store.writeWithoutHistory(text)
+        sendPaste()
+    }
+
+    private func sendPaste() {
         hide()
         guard AXIsProcessTrusted() else {
             // Copied; the user presses ⌘V until permission is granted. Ask at most once per launch,
@@ -224,8 +272,9 @@ final class PanelController {
             switch code {
             case kVK_DownArrow: self.model.move(self.model.gridColumns); return nil
             case kVK_UpArrow: self.model.move(-self.model.gridColumns); return nil
-            case kVK_LeftArrow where self.model.filter == .images: self.model.move(-1); return nil
-            case kVK_RightArrow where self.model.filter == .images: self.model.move(1); return nil
+            case kVK_LeftArrow where self.model.gridColumns > 1: self.model.move(-1); return nil
+            case kVK_RightArrow where self.model.gridColumns > 1: self.model.move(1); return nil
+            case kVK_ANSI_E where cmd: self.model.filter = .emoji; return nil
             case kVK_Return, kVK_ANSI_KeypadEnter: self.model.activateSelected(); return nil
             case kVK_Escape: self.hide(); return nil
             case kVK_Delete where cmd: self.model.deleteSelected(); return nil

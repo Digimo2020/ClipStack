@@ -175,6 +175,13 @@ final class ClipboardStore: ObservableObject {
         }
     }
 
+    /// Puts text on the clipboard without recording it in the history (used for emoji).
+    func writeWithoutHistory(_ text: String) {
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        lastChangeCount = pasteboard.changeCount
+    }
+
     func togglePin(_ id: UUID) {
         guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
         items[idx].pinned.toggle()
