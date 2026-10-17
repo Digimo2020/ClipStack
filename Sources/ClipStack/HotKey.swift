@@ -26,6 +26,17 @@ enum HotkeyPreset: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Same combination as AppKit modifier flags, for showing it in the menu.
+    var menuModifiers: NSEvent.ModifierFlags {
+        switch self {
+        case .cmdShiftV: return [.command, .shift]
+        case .cmdOptV: return [.command, .option]
+        case .ctrlShiftV: return [.control, .shift]
+        case .ctrlOptV: return [.control, .option]
+        case .optV: return [.option]
+        }
+    }
+
     static var saved: HotkeyPreset {
         HotkeyPreset(rawValue: UserDefaults.standard.string(forKey: "hotkey") ?? "") ?? .cmdShiftV
     }
