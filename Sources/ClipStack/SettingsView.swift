@@ -7,7 +7,7 @@ struct SettingsView: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var trusted = AXIsProcessTrusted()
 
-    static let githubURL = URL(string: "https://github.com/Digimo2020")!
+    static let githubURL = URL(string: "https://github.com/Digimo2020/ClipStack")!
 
     static func promptAccessibility() {
         let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
@@ -80,7 +80,7 @@ struct SettingsView: View {
                 Link(destination: Self.githubURL) {
                     Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
                 }
-                .help("github.com/Digimo2020")
+                .help("github.com/Digimo2020/ClipStack")
             }
             .font(.caption).foregroundStyle(.secondary)
             .padding(.bottom, 8)

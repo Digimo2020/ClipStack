@@ -1,0 +1,40 @@
+name: Build and verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows app and installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - run: npm ci
+        working-directory: windows
+      - run: npm run typecheck
+        working-directory: windows
+      - run: npm run check:main
+        working-directory: windows
+      - run: npm test
+        working-directory: windows
+      - run: npm run package:win
+        working-directory: windows
+
+  macos:
+    name: macOS app and disk image
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./build.sh
+      - run: ./scripts/make_dmg.sh

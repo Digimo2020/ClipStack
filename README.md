@@ -19,7 +19,11 @@
 
 <p align="center">
   <a href="https://github.com/Digimo2020/ClipStack/releases/latest"><b>⬇ Download the latest DMG</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/Digimo2020/ClipStack/releases/latest/download/ClipStack-Setup.exe"><b>Download Windows installer</b></a>
 </p>
+
+<p align="center">macOS DMG · Windows EXE installer</p>
 
 ---
 
@@ -31,8 +35,44 @@
 - **Search and filters**: type to search, or filter by All, Text, Images, Links, Pinned.
 - **Emoji picker**: open the 😀 Emoji tab (or press <kbd>⌘</kbd><kbd>E</kbd>), search by name (heart, fire, thumbs…) and insert any emoji into your text.
 - **Pin favourites**: pinned items are never removed.
-- **Private by design**: everything stays on your Mac. Passwords copied from password managers are ignored, and you can pause capturing any time.
+- **Private by design**: history stays on your device. On Mac, known password-manager clipboard formats are ignored; on both platforms you can pause capturing.
 - **Native and light**: Swift and SwiftUI, lives in the menu bar, no Dock icon, dark mode supported.
+- **Windows companion**: a React and Electron app with tray access, local history, image previews, search, pinning and configurable shortcuts.
+
+## Download
+
+| Platform | Installer | Requirements |
+| --- | --- | --- |
+| macOS | [Download ClipStack.dmg](https://github.com/Digimo2020/ClipStack/releases/latest/download/ClipStack.dmg) | macOS 14+ (Apple Silicon) |
+| Windows | [Download ClipStack-Setup.exe](https://github.com/Digimo2020/ClipStack/releases/latest/download/ClipStack-Setup.exe) | Windows 10/11 (64-bit) |
+
+Installers are attached to the [latest public release](https://github.com/Digimo2020/ClipStack/releases/latest). The Windows installer is per-user and does not require administrator access. It is unsigned, so Windows may show a SmartScreen prompt on first launch.
+
+## Windows quick start
+
+1. Download and run [ClipStack-Setup.exe](https://github.com/Digimo2020/ClipStack/releases/latest/download/ClipStack-Setup.exe). Choose an install folder if you want to change the default.
+2. Start ClipStack from the Start menu. It stays in the notification area by the clock; use the hidden-icons arrow if you don't see it.
+3. Copy text or an image, then press **Ctrl+Shift+V** to open history.
+4. Select an item to copy it back, then paste with **Ctrl+V**. Search or use the Text, Images, Links and Pinned filters to find it.
+5. Open **Settings** to change the shortcut, history size, pause capture, clear unpinned items, or launch on sign-in.
+
+Windows screenshots below use sample data and show the app interface. For the full install and usage tutorial, open the [ClipStack Setup Guide (PDF)](docs/ClipStack-Setup-Guide.pdf).
+
+<p align="center">
+  <img src="docs/windows-history.png" alt="ClipStack Windows clipboard history window" width="420">
+</p>
+
+<p align="center"><em>History window: search, filter, pin and copy text or images.</em></p>
+
+<p align="center">
+  <img src="docs/windows-settings.png" alt="ClipStack Windows settings window" width="420">
+</p>
+
+<p align="center"><em>Settings: choose a shortcut, set the history size, pause capture and launch at sign-in.</em></p>
+
+Windows currently uses **Ctrl+Shift+V**, **Ctrl+Alt+V** or **Alt+V**. The default avoids Windows' built-in **Win+V** clipboard history. Selecting a history item copies it to the clipboard; press **Ctrl+V** in the destination app to paste it.
+
+Windows history is stored locally under `%APPDATA%\ClipStack\` as JSON and image files. ClipStack does not send clipboard contents over the network. Clipboard formats marked by an app as excluded from clipboard monitoring are skipped when Windows exposes that marker.
 
 ## Install (step by step)
 
@@ -86,9 +126,11 @@ cd ClipStack
 ./scripts/make_dmg.sh     # optional: build/ClipStack.dmg
 ```
 
+The Windows app is in `windows/`. On a Windows machine with Node.js 22+ installed, run `npm ci`, `npm run typecheck`, `npm test`, and `npm run package:win` from that directory. The result is `windows/release/ClipStack-Setup.exe`.
+
 Set a version with `VERSION=1.2 ./build.sh`.
 
-Maintainers: `./scripts/release.sh patch "what changed"` bumps `VERSION`, builds, pushes and publishes the GitHub release in one step.
+Maintainers: `./scripts/release.sh patch "what changed"` builds the Mac app, checks the Windows code, commits and pushes a version tag. GitHub Actions then builds the DMG on macOS, builds and checks the EXE on Windows, and publishes both installers to the public release.
 
 ## Privacy
 

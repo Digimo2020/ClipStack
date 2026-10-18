@@ -1,0 +1,76 @@
+{
+  "name": "clipstack-windows",
+  "version": "1.5.0",
+  "private": true,
+  "author": "Digimo2020",
+  "license": "MIT",
+  "description": "Private, local clipboard history for Windows",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "test": "node --test",
+    "typecheck": "tsc --noEmit",
+    "check:main": "node --check electron/main.cjs && node --check electron/preload.cjs",
+    "make-icon": "node scripts/make-icon.mjs",
+    "screenshot": "electron electron/screenshot.cjs",
+    "package:win": "npm run make-icon && npm run build && electron-builder --win nsis",
+    "package:dir": "npm run build && electron-builder --dir"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.0.12",
+    "png-to-ico": "^3.0.2",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7"
+  },
+  "allowScripts": {
+    "electron": true,
+    "electron-winstaller": true,
+    "esbuild": true
+  },
+  "build": {
+    "appId": "com.digimo.clipstack",
+    "productName": "ClipStack",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "assets/**/*",
+      "renderer-dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": "assets/app-icon.png", "to": "app-icon.png" }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "ClipStack-Setup.exe",
+      "icon": "assets/clipstack.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ClipStack"
+    }
+  }
+}
