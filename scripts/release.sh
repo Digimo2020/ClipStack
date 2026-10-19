@@ -30,5 +30,6 @@ npm test --prefix windows
 git add -- Sources Resources scripts README.md VERSION build.sh Package.swift LICENSE .gitignore .github/workflows/ci.yml .github/workflows/release.yml windows/package.json windows/package-lock.json windows/README.md windows/index.html windows/vite.config.ts windows/tsconfig.json windows/electron windows/src windows/assets/app-icon.png windows/scripts docs/cover.png docs/windows-history.png docs/windows-settings.png docs/ClipStack-Setup-Guide.pdf
 git commit -m "feat: release ClipStack $NEW - $NOTES"
 git push
+git tag "v$NEW"
 git push origin "v$NEW"
 echo "Pushed v$NEW (was v$CUR). GitHub Actions will build and publish the DMG and Windows EXE."
