@@ -13,7 +13,7 @@ enum Toast {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 18).padding(.vertical, 11)
-                .background(Capsule().fill(LinearGradient(colors: [Color(red: 0.42, green: 0.28, blue: 0.93), Color(red: 0.58, green: 0.30, blue: 0.90)], startPoint: .leading, endPoint: .trailing)))
+                .background(Capsule().fill(Theme.bar))
                 .padding(10)
         )
         view.frame = NSRect(origin: .zero, size: view.fittingSize)

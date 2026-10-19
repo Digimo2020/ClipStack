@@ -1,8 +1,10 @@
 import AppKit
 import SwiftUI
+import Combine
 
 /// Branded header at the top of the menu-bar menu: logo, name, status and version.
 struct MenuHeader: View {
+    @ObservedObject var themes = ThemeStore.shared
     let paused: Bool
     let count: Int
 
@@ -32,10 +34,7 @@ struct MenuHeader: View {
         }
         .padding(.horizontal, 12)
         .frame(width: 270, height: 62)
-        .background(
-            LinearGradient(colors: [Color(red: 0.42, green: 0.28, blue: 0.93), Color(red: 0.62, green: 0.30, blue: 0.90)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-        )
+        .background(Theme.bar)
     }
 }
 
@@ -49,6 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var accessItem: NSMenuItem!
     private var showItem: NSMenuItem!
     private var headerHost: NSHostingView<MenuHeader>!
+    private var themeObserver: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         panel = PanelController(store: store)
@@ -71,6 +71,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { self.statusItem.button?.performClick(nil) }
         }
 
+        if let i = CommandLine.arguments.firstIndex(of: "--snapshot-settings"), i + 1 < CommandLine.arguments.count {
+            applySnapshotTheme()
+            let host = NSHostingView(rootView: SettingsView(store: store))
+            let size = NSSize(width: 520, height: 700)
+            let win = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: .borderless, backing: .buffered, defer: false)
+            win.contentView = host
+            host.frame = NSRect(origin: .zero, size: size)
+            host.layoutSubtreeIfNeeded()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.8))
+            if let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
+                host.cacheDisplay(in: host.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
+            }
+            exit(0)
+        }
+
+        if CommandLine.arguments.contains("--snapshot") { applySnapshotTheme() }
         // Developer aid: render the panel off-screen to a PNG (no window is shown). Usage: --snapshot out.png [--images]
         if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
             let model = PanelModel(store: store)
@@ -104,6 +121,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.button?.image = Self.menuBarIcon()
+        statusItem.menu = buildMenu()
+        // Rebuild the menu when the theme changes so the icons and header follow it.
+        themeObserver = ThemeStore.shared.$preset.dropFirst().sink { [weak self] _ in
+            DispatchQueue.main.async { self?.statusItem.menu = self?.buildMenu() }
+        }
+    }
+
+    /// Debug only: `--theme name` picks a theme for a snapshot without saving it.
+    private func applySnapshotTheme() {
+        guard let q = CommandLine.arguments.firstIndex(of: "--theme"), q + 1 < CommandLine.arguments.count,
+              let t = ThemePreset(rawValue: CommandLine.arguments[q + 1]) else { return }
+        ThemeStore.shared.setTemporarily(t)
+    }
+
+    private func buildMenu() -> NSMenu {
         let menu = NSMenu()
         menu.delegate = self
         func add(_ title: String, _ symbol: String, _ action: Selector?, key: String = "") -> NSMenuItem {
@@ -130,7 +162,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         _ = add("GitHub · Digimo2020", "chevron.left.forwardslash.chevron.right", #selector(openGitHub))
         menu.addItem(.separator())
         _ = add("Quit ClipStack", "power", #selector(NSApplication.terminate(_:)), key: "q")
-        statusItem.menu = menu
+        return menu
     }
 
     /// The brand logo (purple clipboard) at menu-bar size, cropped to the squircle so it matches the app icon.
@@ -151,7 +183,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Purple SF Symbol so the menu carries the brand colour.
     private static func brandIcon(_ symbol: String) -> NSImage? {
-        let cfg = NSImage.SymbolConfiguration(paletteColors: [NSColor(red: 0.56, green: 0.38, blue: 0.99, alpha: 1)])
+        let cfg = NSImage.SymbolConfiguration(paletteColors: [ThemeStore.shared.preset.nsAccent])
         return NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?.withSymbolConfiguration(cfg)
     }
 
@@ -185,7 +217,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if settingsWindow == nil {
             let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(store: store)))
             w.title = "ClipStack Settings"
-            w.styleMask = [.titled, .closable]
+            w.styleMask = [.titled, .closable, .fullSizeContentView]
+            w.titlebarAppearsTransparent = true
+            w.titleVisibility = .hidden
+            w.isMovableByWindowBackground = true
+            w.appearance = NSAppearance(named: .darkAqua)
             w.isReleasedWhenClosed = false
             w.center()
             settingsWindow = w

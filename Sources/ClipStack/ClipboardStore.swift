@@ -48,6 +48,9 @@ final class ClipboardStore: ObservableObject {
     private var lastChangeCount: Int
     private var timer: Timer?
 
+    /// Copies made inside these apps are never saved when "Ignore password managers" is on.
+    private static let passwordManagers = ["com.1password", "com.agilebits", "com.bitwarden", "org.keepassxc", "com.lastpass", "com.dashlane", "com.apple.keychainaccess", "com.apple.Passwords"]
+
     private let ignoredTypes: [NSPasteboard.PasteboardType] = [
         .init("org.nspasteboard.ConcealedType"),
         .init("org.nspasteboard.TransientType"),
@@ -95,11 +98,12 @@ final class ClipboardStore: ObservableObject {
         let front = NSWorkspace.shared.frontmostApplication
         let name = front?.localizedName
         let bundle = front?.bundleIdentifier
+        if Prefs.bool("ignorePasswordManagers", true), let b = bundle, Self.passwordManagers.contains(where: { b.hasPrefix($0) }) { return }
 
         if let text = pasteboard.string(forType: .string),
            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             add(ClipItem(kind: .text, text: text, sourceName: name, sourceBundleID: bundle))
-        } else if let png = pngData(from: pasteboard) {
+        } else if Prefs.bool("captureImages", true), let png = pngData(from: pasteboard) {
             let hash = SHA256.hash(data: png).map { String(format: "%02x", $0) }.joined()
             var item = ClipItem(kind: .image, imageHash: hash, sourceName: name, sourceBundleID: bundle)
             if let rep = NSBitmapImageRep(data: png) {

@@ -152,14 +152,22 @@ final class PanelController {
     private static var askedForAccessibility = false
     /// The app that was in front when the panel opened; it gets focus back before we paste.
     private var previousApp: NSRunningApplication?
-    private let size = NSSize(width: 460, height: 600)
+    private var size: NSSize {
+        switch Prefs.string("panelSize", "regular") {
+        case "compact": return NSSize(width: 420, height: 540)
+        case "large": return NSSize(width: 520, height: 700)
+        default: return NSSize(width: 460, height: 600)
+        }
+    }
+    private let effect: NSVisualEffectView
+    private var themeObserver: AnyCancellable?
 
     var isVisible: Bool { panel.isVisible }
 
     init(store: ClipboardStore) {
         model = PanelModel(store: store)
         panel = FloatingPanel(
-            contentRect: NSRect(origin: .zero, size: size),
+            contentRect: NSRect(origin: .zero, size: NSSize(width: 460, height: 600)),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -173,7 +181,7 @@ final class PanelController {
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-        let effect = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
+        effect = NSVisualEffectView(frame: NSRect(origin: .zero, size: NSSize(width: 460, height: 600)))
         effect.material = .hudWindow
         effect.blendingMode = .behindWindow
         effect.state = .active
@@ -182,9 +190,9 @@ final class PanelController {
         effect.layer?.cornerCurve = .continuous
         effect.layer?.masksToBounds = true
         effect.layer?.borderWidth = 1
-        effect.layer?.borderColor = NSColor(red: 0.62, green: 0.45, blue: 1.0, alpha: 0.55).cgColor
+        effect.layer?.borderColor = ThemeStore.shared.preset.nsBorder.cgColor
 
-        let host = NSHostingView(rootView: HistoryView(model: model))
+        let host = NSHostingView(rootView: ThemedHistory(model: model))
         host.frame = effect.bounds
         host.autoresizingMask = [.width, .height]
         effect.addSubview(host)
@@ -193,6 +201,9 @@ final class PanelController {
         model.onActivate = { [weak self] item in self?.paste(item) }
         model.onClose = { [weak self] in self?.hide() }
         model.onEmoji = { [weak self] e in self?.pasteText(e) }
+        themeObserver = ThemeStore.shared.$preset.sink { [weak self] preset in
+            self?.effect.layer?.borderColor = preset.nsBorder.cgColor
+        }
 
         NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: panel, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.hide() }
@@ -208,7 +219,13 @@ final class PanelController {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? NSScreen.main
         if let vf = screen?.visibleFrame {
-            let origin = NSPoint(x: vf.midX - size.width / 2, y: vf.midY - size.height / 2 + vf.height * 0.06)
+            let size = self.size
+            var origin = NSPoint(x: vf.midX - size.width / 2, y: vf.midY - size.height / 2 + vf.height * 0.06)
+            if Prefs.string("panelPosition", "center") == "cursor" {
+                origin = NSPoint(x: mouse.x - size.width / 2, y: mouse.y - size.height / 2)
+                origin.x = min(max(origin.x, vf.minX + 8), vf.maxX - size.width - 8)
+                origin.y = min(max(origin.y, vf.minY + 8), vf.maxY - size.height - 8)
+            }
             panel.setFrame(NSRect(origin: origin, size: size), display: true)
         }
         panel.alphaValue = 0
@@ -241,6 +258,10 @@ final class PanelController {
     private func sendPaste() {
         hide()
         let target = previousApp
+        guard Prefs.bool("autoPaste", true) else {
+            Toast.show("Copied. Press ⌘V to paste.")
+            return
+        }
         guard AXIsProcessTrusted() else {
             // Copied; the user presses ⌘V until permission is granted. Ask at most once per launch,
             // never on every paste (a stale entry would otherwise nag forever).

@@ -35,15 +35,6 @@ enum ImageCache {
 
 // MARK: - Theme
 
-enum Theme {
-    static let accent = Color(red: 0.56, green: 0.38, blue: 0.99)
-    static let accentDeep = Color(red: 0.40, green: 0.26, blue: 0.92)
-    static let glass = Color.white.opacity(0.06)
-    static let glassBorder = Color.white.opacity(0.10)
-    static let textSecondary = Color.white.opacity(0.55)
-    static let tile = LinearGradient(colors: [Color(red: 0.62, green: 0.45, blue: 1.0), Color(red: 0.42, green: 0.28, blue: 0.93)],
-                                     startPoint: .topLeading, endPoint: .bottomTrailing)
-}
 
 private func parseHexColor(_ raw: String?) -> Color? {
     guard var t = raw?.trimmingCharacters(in: .whitespacesAndNewlines), t.hasPrefix("#") else { return nil }
@@ -133,7 +124,7 @@ struct HistoryView: View {
         }
         .background(
             ZStack {
-                LinearGradient(colors: [Color(red: 0.16, green: 0.09, blue: 0.40).opacity(0.78), Color(red: 0.07, green: 0.05, blue: 0.20).opacity(0.85)],
+                LinearGradient(colors: [Theme.bgTop.opacity(0.78), Theme.bgBottom.opacity(0.85)],
                                startPoint: .topLeading, endPoint: .bottomTrailing)
                 RadialGradient(colors: [Theme.accent.opacity(0.35), .clear], center: .topTrailing, startRadius: 0, endRadius: 360)
             }
