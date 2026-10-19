@@ -54,6 +54,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel = PanelController(store: store)
         store.start()
 
+        if CommandLine.arguments.contains("--ax-status") {
+            print("AXIsProcessTrusted =", AXIsProcessTrusted(), "| path =", Bundle.main.bundlePath)
+            exit(0)
+        }
+
+        // Developer aid: open the panel, then paste a fixed string into whatever app was in front.
+        if let i = CommandLine.arguments.firstIndex(of: "--paste-test"), i + 1 < CommandLine.arguments.count {
+            let text = CommandLine.arguments[i + 1]
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { self.panel.show() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { self.panel.pasteText(text) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) { exit(0) }
+        }
+
         if CommandLine.arguments.contains("--menu") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { self.statusItem.button?.performClick(nil) }
         }

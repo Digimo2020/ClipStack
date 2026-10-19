@@ -150,6 +150,8 @@ final class PanelController {
     private let panel: FloatingPanel
     private var keyMonitor: Any?
     private static var askedForAccessibility = false
+    /// The app that was in front when the panel opened; it gets focus back before we paste.
+    private var previousApp: NSRunningApplication?
     private let size = NSSize(width: 460, height: 600)
 
     var isVisible: Bool { panel.isVisible }
@@ -200,6 +202,8 @@ final class PanelController {
     func toggle() { panel.isVisible ? hide() : show() }
 
     func show() {
+        let front = NSWorkspace.shared.frontmostApplication
+        previousApp = (front?.processIdentifier == ProcessInfo.processInfo.processIdentifier) ? nil : front
         model.reset()
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? NSScreen.main
@@ -209,6 +213,7 @@ final class PanelController {
         }
         panel.alphaValue = 0
         panel.makeKeyAndOrderFront(nil)
+        panel.invalidateShadow()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.12
             panel.animator().alphaValue = 1
@@ -227,7 +232,7 @@ final class PanelController {
     }
 
     /// Inserts an emoji into the app you were using. It is not added to the clipboard history.
-    private func pasteText(_ text: String) {
+    func pasteText(_ text: String) {
         model.rememberEmoji(text)
         model.store.writeWithoutHistory(text)
         sendPaste()
@@ -235,9 +240,11 @@ final class PanelController {
 
     private func sendPaste() {
         hide()
+        let target = previousApp
         guard AXIsProcessTrusted() else {
             // Copied; the user presses ⌘V until permission is granted. Ask at most once per launch,
             // never on every paste (a stale entry would otherwise nag forever).
+            Toast.show("Copied. Press ⌘V to paste. Turn on Auto-Paste in Settings.")
             if !Self.askedForAccessibility {
                 Self.askedForAccessibility = true
                 let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
@@ -245,14 +252,17 @@ final class PanelController {
             }
             return
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+        // Give the previous app focus back explicitly: closing our panel does not always re-key its window,
+        // and a ⌘V sent before that would go nowhere.
+        target?.activate()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
             let src = CGEventSource(stateID: .combinedSessionState)
             let down = CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(kVK_ANSI_V), keyDown: true)
             let up = CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(kVK_ANSI_V), keyDown: false)
             down?.flags = .maskCommand
             up?.flags = .maskCommand
-            down?.post(tap: .cghidEventTap)
-            up?.post(tap: .cghidEventTap)
+            down?.post(tap: .cgSessionEventTap)
+            up?.post(tap: .cgSessionEventTap)
         }
     }
 
